@@ -1,7 +1,8 @@
 
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
-import LoanForm from "@/components/LoanForm";
+// import LoanForm from "@/components/LoanForm";
+import LoanFormBl from "@/components/LoanFormBl";
 import Footer from "@/components/Footer";
 
 const ApplyNow = () => {
@@ -16,12 +17,14 @@ const ApplyNow = () => {
         <div className="bg-white py-8">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-xl md:text-2xl font-bold text-red-600">
-              Eligibility: Only for salaried persons with Monthly Salary of 45000 per month.
+              {/* Eligibility: Only for salaried persons with Monthly Salary of 45000 per month. */}
+              Eligibility: For business owners and entrepreneurs with minimum 2 years of business operation and annual turnover of ₹10 lakhs.
             </h2>
           </div>
         </div>
 
-        <LoanForm />
+        {/* <LoanForm /> */}
+        <LoanFormBl />
 
         {/* Informational Sections */}
         <section className="py-16 bg-gray-50">
