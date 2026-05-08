@@ -96,7 +96,7 @@ const buildPayload = (form: FormData) => ({
     email: form.email,
     loan_amount: form.loanAmount,
     data: {
-      sourced_by: "Partner"
+      sourced_by: "self"
     },
     territory_id: ""
   },
