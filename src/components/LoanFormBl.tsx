@@ -39,6 +39,19 @@ const formatPAN = (value: string): string => {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
 };
 
+// Mobile number validation regex (10 digits, starting with 6-9)
+const MOBILE_REGEX = /^[6-9][0-9]{9}$/;
+
+// Validate mobile number format
+const validateMobile = (mobile: string): boolean => {
+  return MOBILE_REGEX.test(mobile);
+};
+
+// Format mobile input (only digits, limit to 10)
+const formatMobile = (value: string): string => {
+  return value.replace(/[^\d]/g, "").slice(0, 10);
+};
+
 // Build payload for business loan
 const buildPayload = (form: FormData) => ({
   application: {
@@ -67,25 +80,68 @@ const buildPayload = (form: FormData) => ({
     applicant_type: "PRIMARY",
     applicant_category: "ENTITY",
     business: {
-      trade_name: form.businessName,
-      legal_name: form.businessName,
       entity_type: "SOLE_PROPRIETOR",
+      external_id: "",
+      legal_name: form.businessName,
+      trade_name: form.businessName,
+      nature_of_business: "",
+      primary_id_type: form.panCard ? "PAN" : "",
+      primary_id_value: form.panCard || "",
+      secondary_id_type: "",
+      secondary_id_value: "",
+      business_vintage: 0,
+      incorporation_date: "",
+      last_year_profit: 0,
+      last_year_turnover: 0,
+      annual_income: 0,
+      monthly_emi: 0,
+      monthly_sale: 0,
+      industry_type_name: "",
+      industry_product_name: "",
       shareholders: [
         {
           name: form.name,
-          email: form.email,
+          share_percentage: 0,
           gender: form.gender,
+          mobile: form.mobileNo,
           dob: form.dob,
-          pan_card: form.panCard
+          email: form.email,
+          primary_id_type: form.panCard ? "PAN" : "",
+          primary_id_value: form.panCard || "",
+          secondary_id_type: "",
+          secondary_id_value: "",
+          maiden_type: "",
+          maiden_name: "",
+          is_applicant: 0,
+          aadhaar_kyc: 0,
+          addresses: null,
+          profession: "",
+          qualification: "",
+          data: null,
+          work_info: null
         }
       ],
       addresses: [
         {
-          pincode: form.pincode,
+          address_type: "",
+          address_line: "",
+          locality: "",
+          landmark: "",
           city: "",
-          state: ""
+          state: "",
+          latitude: 0,
+          longitude: 0,
+          pincode: form.pincode,
+          residing_in_month: 0,
+          area_id: 0,
+          residence_type: "",
+          premise: "",
+          proof_document_id: "",
+          same_as_type: ""
         }
-      ]
+      ],
+      company_bank_account: null,
+      data: null
     }
   }
 });
@@ -106,6 +162,7 @@ export default function LoanFormBl() {
   const [form, setForm] = useState(INIT);
   const [displayAmount, setDisplayAmount] = useState("");
   const [panError, setPanError] = useState("");
+  const [mobileError, setMobileError] = useState("");
   const { mutate, isPending, isSuccess, isError, data, error, reset } = useSubmitLoanRequestLeadCreation();
 
   const set = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -129,6 +186,22 @@ export default function LoanFormBl() {
     }
   };
 
+  const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatMobile(e.target.value);
+    setForm((p) => ({ ...p, mobileNo: formattedValue }));
+    
+    // Validate mobile format
+    if (formattedValue.length === 0) {
+      setMobileError("");
+    } else if (formattedValue.length < 10) {
+      setMobileError("Mobile number must be 10 digits long");
+    } else if (!validateMobile(formattedValue)) {
+      setMobileError("Invalid mobile number. Must start with 6-9 and be 10 digits");
+    } else {
+      setMobileError("");
+    }
+  };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = parseAmount(e.target.value);
     const formattedValue = formatAmount(rawValue);
@@ -140,8 +213,8 @@ export default function LoanFormBl() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Check for PAN validation before submitting
-    if (panError) {
+    // Check for validation errors before submitting
+    if (panError || mobileError) {
       return;
     }
     
@@ -151,6 +224,7 @@ export default function LoanFormBl() {
         setForm(INIT);
         setDisplayAmount("");
         setPanError("");
+        setMobileError("");
       },
     });
   };
@@ -240,10 +314,16 @@ export default function LoanFormBl() {
                     name="mobileNo"
                     placeholder="Mobile No *"
                     value={form.mobileNo}
-                    onChange={set}
+                    onChange={handleMobileChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={10}
+                    className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      mobileError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {mobileError && (
+                    <p className="mt-1 text-sm text-red-600">{mobileError}</p>
+                  )}
                 </div>
 
                 <div>
