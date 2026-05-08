@@ -11,6 +11,7 @@ interface FormData {
   gender: string;
   dob: string;
   panCard: string;
+  entityType: string;
 }
 
 // Format number with Indian comma separator
@@ -52,6 +53,29 @@ const formatMobile = (value: string): string => {
   return value.replace(/[^\d]/g, "").slice(0, 10);
 };
 
+// Gmail validation regex
+const GMAIL_REGEX = /^[a-zA-Z0-9._%-]+@gmail\.com$/;
+
+// Validate Gmail format
+const validateGmail = (email: string): boolean => {
+  return GMAIL_REGEX.test(email);
+};
+
+// Personal PAN validation (starts with letter, 4th and 5th chars are letters)
+const validatePersonalPAN = (pan: string): boolean => {
+  if (!PAN_REGEX.test(pan)) return false;
+  // Personal PAN: 4th and 5th characters are letters (typically AA, AB, etc.)
+  return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+};
+
+// Business PAN validation (4th and 5th chars are numbers)
+const validateBusinessPAN = (pan: string): boolean => {
+  if (!PAN_REGEX.test(pan)) return false;
+  // Business PAN: 4th and 5th characters are typically numbers or specific patterns
+  // For business: typically format is like AAACR5055K where 4th-5th are letters
+  return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+};
+
 // Build payload for business loan
 const buildPayload = (form: FormData) => ({
   application: {
@@ -64,7 +88,7 @@ const buildPayload = (form: FormData) => ({
       }
     ],
     apply_capacity: "ENTITY",
-    entity_type: "SOLE_PROPRIETOR",
+    entity_type: form.entityType || "SOLE_PROPRIETOR",
     applicant_name: form.businessName,
     contact_name: form.name,
     status: 1,
@@ -72,15 +96,15 @@ const buildPayload = (form: FormData) => ({
     email: form.email,
     loan_amount: form.loanAmount,
     data: {
-      sourced_by: "self"
+      sourced_by: "Partner"
     },
-    territory_id: "1742820979107"
+    territory_id: ""
   },
   primary: {
     applicant_type: "PRIMARY",
     applicant_category: "ENTITY",
     business: {
-      entity_type: "SOLE_PROPRIETOR",
+      entity_type: form.entityType || "SOLE_PROPRIETOR",
       external_id: "",
       legal_name: form.businessName,
       trade_name: form.businessName,
@@ -156,6 +180,7 @@ const INIT = {
   gender: "",
   dob: "",
   panCard: "",
+  entityType: "",
 };
 
 export default function LoanFormBl() {
@@ -163,6 +188,7 @@ export default function LoanFormBl() {
   const [displayAmount, setDisplayAmount] = useState("");
   const [panError, setPanError] = useState("");
   const [mobileError, setMobileError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const { mutate, isPending, isSuccess, isError, data, error, reset } = useSubmitLoanRequestLeadCreation();
 
   const set = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -182,7 +208,24 @@ export default function LoanFormBl() {
     } else if (!validatePAN(formattedValue)) {
       setPanError("Invalid PAN format. Use format: ABCDE1234F");
     } else {
-      setPanError("");
+      // Additional validation based on entity type
+      if (form.entityType === "SOLE_PROPRIETOR") {
+        // For sole proprietor, validate personal PAN
+        if (!validatePersonalPAN(formattedValue)) {
+          setPanError("Invalid Personal PAN format for Sole Proprietor");
+        } else {
+          setPanError("");
+        }
+      } else if (form.entityType && form.entityType !== "SOLE_PROPRIETOR") {
+        // For business entities, validate business PAN
+        if (!validateBusinessPAN(formattedValue)) {
+          setPanError("Invalid Business PAN format for this entity type");
+        } else {
+          setPanError("");
+        }
+      } else {
+        setPanError("");
+      }
     }
   };
 
@@ -202,6 +245,20 @@ export default function LoanFormBl() {
     }
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setForm((p) => ({ ...p, email: value }));
+    
+    // Validate Gmail format
+    if (value.length === 0) {
+      setEmailError("");
+    } else if (!validateGmail(value)) {
+      setEmailError("Please enter a valid Gmail address (e.g., name@gmail.com)");
+    } else {
+      setEmailError("");
+    }
+  };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = parseAmount(e.target.value);
     const formattedValue = formatAmount(rawValue);
@@ -214,7 +271,7 @@ export default function LoanFormBl() {
     e.preventDefault();
     
     // Check for validation errors before submitting
-    if (panError || mobileError) {
+    if (panError || mobileError || emailError) {
       return;
     }
     
@@ -225,6 +282,7 @@ export default function LoanFormBl() {
         setDisplayAmount("");
         setPanError("");
         setMobileError("");
+        setEmailError("");
       },
     });
   };
@@ -294,6 +352,25 @@ export default function LoanFormBl() {
                 />
               </div>
 
+              {/* Entity Type - Full width */}
+              <div className="col-span-2">
+                <select
+                  name="entityType"
+                  value={form.entityType}
+                  onChange={set}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Select Entity Type *</option>
+                  <option value="SOLE_PROPRIETOR">Sole Proprietor</option>
+                  <option value="PARTNERSHIP">Partnership</option>
+                  <option value="PRIVATE_LIMITED">Private Limited</option>
+                  <option value="PUBLIC_LIMITED">Public Limited</option>
+                  <option value="LIMITED_LIABILITY_PARTNERSHIP">Limited Liability Partnership</option>
+                  <option value="ONE_PERSON_COMPANY">One Person Company</option>
+                </select>
+              </div>
+
               {/* Two columns layout */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -332,10 +409,15 @@ export default function LoanFormBl() {
                     name="email"
                     placeholder="Email *"
                     value={form.email}
-                    onChange={set}
+                    onChange={handleEmailChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      emailError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   />
+                  {emailError && (
+                    <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                  )}
                 </div>
 
                 <div>
