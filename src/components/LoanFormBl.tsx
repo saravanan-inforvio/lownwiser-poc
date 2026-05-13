@@ -8,9 +8,6 @@ interface FormData {
   email: string;
   pincode: string;
   loanAmount: string;
-  gender: string;
-  dob: string;
-  panCard: string;
   entityType: string;
 }
 
@@ -61,21 +58,6 @@ const validateGmail = (email: string): boolean => {
   return GMAIL_REGEX.test(email);
 };
 
-// Personal PAN validation (starts with letter, 4th and 5th chars are letters)
-const validatePersonalPAN = (pan: string): boolean => {
-  if (!PAN_REGEX.test(pan)) return false;
-  // Personal PAN: 4th and 5th characters are letters (typically AA, AB, etc.)
-  return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
-};
-
-// Business PAN validation (4th and 5th chars are numbers)
-const validateBusinessPAN = (pan: string): boolean => {
-  if (!PAN_REGEX.test(pan)) return false;
-  // Business PAN: 4th and 5th characters are typically numbers or specific patterns
-  // For business: typically format is like AAACR5055K where 4th-5th are letters
-  return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
-};
-
 // Build payload for business loan
 const buildPayload = (form: FormData) => ({
   application: {
@@ -109,8 +91,8 @@ const buildPayload = (form: FormData) => ({
       legal_name: form.businessName,
       trade_name: form.businessName,
       nature_of_business: "",
-      primary_id_type: form.panCard ? "PAN" : "",
-      primary_id_value: form.panCard || "",
+      primary_id_type: "",
+      primary_id_value: "",
       secondary_id_type: "",
       secondary_id_value: "",
       business_vintage: 0,
@@ -126,12 +108,12 @@ const buildPayload = (form: FormData) => ({
         {
           name: form.name,
           share_percentage: 0,
-          gender: form.gender,
+          gender: "",
           mobile: form.mobileNo,
-          dob: form.dob,
+          dob: "",
           email: form.email,
-          primary_id_type: form.panCard ? "PAN" : "",
-          primary_id_value: form.panCard || "",
+          primary_id_type: "",
+          primary_id_value: "",
           secondary_id_type: "",
           secondary_id_value: "",
           maiden_type: "",
@@ -167,7 +149,8 @@ const buildPayload = (form: FormData) => ({
       company_bank_account: null,
       data: null
     }
-  }
+  },
+  "execute_workflow": "TRUE",
 });
 
 const INIT = {
@@ -177,16 +160,12 @@ const INIT = {
   email: "",
   pincode: "",
   loanAmount: "",
-  gender: "",
-  dob: "",
-  panCard: "",
   entityType: "",
 };
 
 export default function LoanFormBl() {
   const [form, setForm] = useState(INIT);
   const [displayAmount, setDisplayAmount] = useState("");
-  const [panError, setPanError] = useState("");
   const [mobileError, setMobileError] = useState("");
   const [emailError, setEmailError] = useState("");
   const { mutate, isPending, isSuccess, isError, data, error, reset } = useSubmitLoanRequestLeadCreation();
@@ -194,39 +173,6 @@ export default function LoanFormBl() {
   const set = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
-  };
-
-  const handlePanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedValue = formatPAN(e.target.value);
-    setForm((p) => ({ ...p, panCard: formattedValue }));
-    
-    // Validate PAN format
-    if (formattedValue.length === 0) {
-      setPanError("");
-    } else if (formattedValue.length < 10) {
-      setPanError("PAN must be 10 characters long");
-    } else if (!validatePAN(formattedValue)) {
-      setPanError("Invalid PAN format. Use format: ABCDE1234F");
-    } else {
-      // Additional validation based on entity type
-      if (form.entityType === "SOLE_PROPRIETOR") {
-        // For sole proprietor, validate personal PAN
-        if (!validatePersonalPAN(formattedValue)) {
-          setPanError("Invalid Personal PAN format for Sole Proprietor");
-        } else {
-          setPanError("");
-        }
-      } else if (form.entityType && form.entityType !== "SOLE_PROPRIETOR") {
-        // For business entities, validate business PAN
-        if (!validateBusinessPAN(formattedValue)) {
-          setPanError("Invalid Business PAN format for this entity type");
-        } else {
-          setPanError("");
-        }
-      } else {
-        setPanError("");
-      }
-    }
   };
 
   const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,7 +217,7 @@ export default function LoanFormBl() {
     e.preventDefault();
     
     // Check for validation errors before submitting
-    if (panError || mobileError || emailError) {
+    if (mobileError || emailError) {
       return;
     }
     
@@ -280,7 +226,6 @@ export default function LoanFormBl() {
       onSuccess: () => {
         setForm(INIT);
         setDisplayAmount("");
-        setPanError("");
         setMobileError("");
         setEmailError("");
       },
@@ -417,51 +362,6 @@ export default function LoanFormBl() {
                   />
                   {emailError && (
                     <p className="mt-1 text-sm text-red-600">{emailError}</p>
-                  )}
-                </div>
-
-                <div>
-                  <select
-                    name="gender"
-                    value={form.gender}
-                    onChange={set}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-                  >
-                    <option value="">Select Gender *</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <input
-                    type="date"
-                    name="dob"
-                    placeholder="Date of Birth *"
-                    value={form.dob}
-                    onChange={set}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="text"
-                    name="panCard"
-                    placeholder="PAN Card Number *"
-                    value={form.panCard}
-                    onChange={handlePanChange}
-                    required
-                    maxLength={10}
-                    className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent uppercase ${
-                      panError ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {panError && (
-                    <p className="mt-1 text-sm text-red-600">{panError}</p>
                   )}
                 </div>
 
