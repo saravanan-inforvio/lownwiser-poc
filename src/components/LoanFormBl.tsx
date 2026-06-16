@@ -50,13 +50,7 @@ const formatMobile = (value: string): string => {
   return value.replace(/[^\d]/g, "").slice(0, 10);
 };
 
-// Gmail validation regex
-const GMAIL_REGEX = /^[a-zA-Z0-9._%-]+@gmail\.com$/;
 
-// Validate Gmail format
-const validateGmail = (email: string): boolean => {
-  return GMAIL_REGEX.test(email);
-};
 
 // Build payload for business loan
 const buildPayload = (form: FormData) => ({
@@ -91,10 +85,10 @@ const buildPayload = (form: FormData) => ({
       legal_name: form.businessName,
       trade_name: form.businessName,
       nature_of_business: "",
-      primary_id_type: "",
-      primary_id_value: "",
-      secondary_id_type: "",
-      secondary_id_value: "",
+      primary_id_type: null,
+      primary_id_value: null,
+      secondary_id_type: null,
+      secondary_id_value: null,
       business_vintage: 0,
       incorporation_date: "",
       last_year_profit: 0,
@@ -129,7 +123,7 @@ const buildPayload = (form: FormData) => ({
       ],
       addresses: [
         {
-          address_type: "",
+          address_type: "BUSINESS_ADDRESS",
           address_line: "",
           locality: "",
           landmark: "",
@@ -167,7 +161,6 @@ export default function LoanFormBl() {
   const [form, setForm] = useState(INIT);
   const [displayAmount, setDisplayAmount] = useState("");
   const [mobileError, setMobileError] = useState("");
-  const [emailError, setEmailError] = useState("");
   const { mutate, isPending, isSuccess, isError, data, error, reset } = useSubmitLoanRequestLeadCreation();
 
   const set = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -191,19 +184,6 @@ export default function LoanFormBl() {
     }
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setForm((p) => ({ ...p, email: value }));
-    
-    // Validate Gmail format
-    if (value.length === 0) {
-      setEmailError("");
-    } else if (!validateGmail(value)) {
-      setEmailError("Please enter a valid Gmail address (e.g., name@gmail.com)");
-    } else {
-      setEmailError("");
-    }
-  };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = parseAmount(e.target.value);
@@ -217,7 +197,7 @@ export default function LoanFormBl() {
     e.preventDefault();
     
     // Check for validation errors before submitting
-    if (mobileError || emailError) {
+    if (mobileError) {
       return;
     }
     
@@ -227,7 +207,6 @@ export default function LoanFormBl() {
         setForm(INIT);
         setDisplayAmount("");
         setMobileError("");
-        setEmailError("");
       },
     });
   };
@@ -354,15 +333,10 @@ export default function LoanFormBl() {
                     name="email"
                     placeholder="Email *"
                     value={form.email}
-                    onChange={handleEmailChange}
+                    onChange={set}
                     required
-                    className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                      emailError ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
-                  {emailError && (
-                    <p className="mt-1 text-sm text-red-600">{emailError}</p>
-                  )}
                 </div>
 
                 <div>
