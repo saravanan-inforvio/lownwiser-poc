@@ -59,7 +59,7 @@ const buildPayload = (form: FormData) => ({
     loan_type_code: "BL",
     loan_info: [
       {
-        sub_loan_type: "BLNEW",
+        sub_loan_type: "BL_NEW",
         facility_type: ""
       }
     ],

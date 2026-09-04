@@ -232,7 +232,7 @@ export const buildBusinessLoanPayload = (form: Record<string, any>) => ({
     type: "FULL_FLEDGED_APPLICATION",
     apply_capacity: "PERSON",
     entity_type: form.businessType,
-    loan_info: [{ sub_loan_type: "BLNEW" }],
+    loan_info: [{ sub_loan_type: "BL_NEW" }],
   },
   primary: {
     applicant_type: "PRIMARY",
